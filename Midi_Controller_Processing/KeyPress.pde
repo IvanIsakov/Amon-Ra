@@ -14,7 +14,7 @@ int[] activeModes = new int[3];
 boolean changingMode = false;
 
 
-void CheckKeyPress() {
+void CheckKeyboardPress() {
   if (keyPressed) {
     // Low keyboard
     if (key == 'z') {
@@ -134,30 +134,35 @@ void CheckKeyPress() {
     if ((key == '1' || key == '2' || key == '3' || key == '4' ||
         key == '5' || key == '6' || key == '7' || key == '8' || key == '9')
         && (!changingMode)) {
-          
-      // Remove the third active mode, and move all the others down one line:
-      if (modeNumber != activeModes[0]) {
-        if (modeNumber != activeModes[1]) {
-          // Record them
-          activeModes[2] = activeModes[1];
-          activeModes[1] = activeModes[0];
-          activeModes[0] = modeNumber;
+        
+      if (recordingState != 3) { // If normal playing
+        // Remove the third active mode, and move all the others down one line:
+        if (modeNumber != activeModes[0]) {
+          if (modeNumber != activeModes[1]) {
+            // Record them
+            activeModes[2] = activeModes[1];
+            activeModes[1] = activeModes[0];
+            activeModes[0] = modeNumber;
+          } else {
+            // Exchange first and second
+            activeModes[1] = activeModes[0];
+            activeModes[0] = modeNumber;
+          }
+          for (int i = 0; i < inputData.length; i++) {
+            recordedInputTwo[i] = recordedInputStatic[i];
+            recordedInputStatic[i] = inputData[i];   
+          }
         } else {
-          // Exchange first and second
-          activeModes[1] = activeModes[0];
-          activeModes[0] = modeNumber;
+          // Remove the last, and move the pre-last to last:
+          activeModes[2] = activeModes[1];
+          activeModes[1] = 0;
+          for (int i = 0; i < inputData.length; i++) {
+            recordedInputTwo[i] = recordedInputStatic[i];
+          }  
         }
-        for (int i = 0; i < inputData.length; i++) {
-          recordedInputTwo[i] = recordedInputStatic[i];
-          recordedInputStatic[i] = inputData[i];   
-        }
-      } else {
-        // Remove the last, and move the pre-last to last:
-        activeModes[2] = activeModes[1];
-        activeModes[1] = 0;
-        for (int i = 0; i < inputData.length; i++) {
-          recordedInputTwo[i] = recordedInputStatic[i];
-        }  
+      } else { // If second mode is being replayed
+        activeModes[2] = 0; // remove the last one;
+        activeModes[0] = modeNumber; // change the first one and don't touch the second one
       }
       changingMode = true;
     }
@@ -190,8 +195,8 @@ void keyReleased() {
         replayIndex = 0;
       }
       if (recordingState == 3) { // Start replaying with recorded background
-        replayIndex = 0;
         activeModes[1] = activeModes[0];
+        replayIndex = 0;
       }
     }
     changingMode = false;

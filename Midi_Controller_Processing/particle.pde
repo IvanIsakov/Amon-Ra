@@ -12,6 +12,7 @@ int strokeThickness = 1;
 int lineDistance = 300;
 int attractionVar = 15;
 int numberOfGravityWells = 1;
+String[] names = {"Corona","Virus", "Wash hands", "Use sanitiser", "Stay in house", "China"};//"C","D","E","F","G","H","I","J","K","L","M","N","O","P"};
 
 ArrayList<particle> cloud = new ArrayList<particle>();
 
@@ -30,7 +31,7 @@ void CreateCircleOfCircles() {
 
 void DrawParticles(int thickness, int colorChange, int _lineDistance, 
                   int _attraction, int colorSaturation, int mousePosX, int mousePosY) {
-  particleColor = color(colorChange * 25, colorSaturation, 255);
+  particleColor = color(colorChange * 25, colorSaturation, 105);
   strokeThickness = thickness;
   lineDistance = _lineDistance;
   attractionVar = _attraction;
@@ -53,6 +54,7 @@ class particle {
   float vx, vy, v;
   float a,b,c, angle; // Angles
   int ptSize;
+  int namePt; 
 
   boolean noAttraction = false;
 
@@ -67,6 +69,7 @@ class particle {
     c = random(1);
     //angle = random(PI);
     angle = 0;
+    namePt = (int) random(6);
   }
 
   void attractToMouse(float attraction, int _aX, int _aY) { // float attraction = 15;
@@ -125,7 +128,7 @@ class particle {
   
   void repulse(float repulsion, int cutoffDistance) {
     strokeWeight(strokeThickness);
-    stroke(particleColor);      
+    stroke(particleColor,100);      
     for (particle p : cloud) {
       if (p != this && !main) {
         float dist = ( (x-p.x)*(x-p.x) + (y-p.y)*(y-p.y));
@@ -136,6 +139,7 @@ class particle {
         if (connectedLinesOnly) {
           if (dist < lineDistance) {
             line(p.x,p.y,x,y);
+            //text(names[namePt],p.x,p.y);
           }
         }
       }

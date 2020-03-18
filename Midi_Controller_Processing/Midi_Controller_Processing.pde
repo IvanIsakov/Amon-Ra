@@ -1,3 +1,18 @@
+  
+/* Amon-Ra. 
+
+ A visual controller software working together with Amon-Ra Arduino-based visual controller.
+ 
+ Receives four values from the Arduino ADCs via Serial and controls visuals depending on those parameters
+ 
+ Has 9 modes, possibility to record video loops, possibility to overlay them
+ 
+ Enjoy!
+ 
+ 17/03/2020 
+ by Ivan Isakov.
+*/
+
 boolean rightEyeOpen = false;
 boolean leftEyeOpen = false;
 int leftEyeX, leftEyeY, rightEyeX, rightEyeY, mouthX, mouthY;
@@ -41,12 +56,13 @@ void setup() {
   CreateCircleOfCircles();
   CreateSquares();
   InitialiseSound();
-  
+  InitSkin();
   // Initialise Serial
-  myPort = new Serial(this, "COM8", 115200);
+  myPort = new Serial(this, "COM8", 115200); // Choose port where you connect Amon-Ra
   myPort.bufferUntil('\n');
   
-  video = new Capture(this, 640, 480);
+  //video = new Capture(this, 640, 480);
+  video = new Capture(this, 320, 240);
   // Start capturing the images from the camera
   video.start(); 
   numPixels = video.width * video.height;
@@ -58,26 +74,28 @@ void setup() {
   for (int i = 1; i < modeState.length; i++) {
     modeState[i] = false;
   }
+  textSize(100);
 }
 
+// Main body of the program
 void draw() {
-  RequestForData();
-  CheckKeyPress();
-  BackGroundChoice(true);
-  if (pauseComputation) return;
-  CollateInputData();
-  DrawIndicators();
-  ChooseLiveRecording();
+  RequestForDataFromArduino();
+  CheckKeyboardPress();
+  ChooseBackground(true);
+  if (pauseComputation) return; // If I want some pause for CPU / GPU
+  ProcessInputData(); // Record incoming Arduino data + keyboard + mouse
+  DrawIndicators(); // Indicators for keeping track of knobs' positions
+  DrawLiveVisuals();
 }
 
-void RequestForData() {
+void RequestForDataFromArduino() {
   if (millis() - timeCounter > 1000) {
     timeCounter = millis();
     myPort.write('<');
   }
 }
 
-void CollateInputData() {
+void ProcessInputData() {
   inputData[0] = inByte[0];
   inputData[1] = inByte[1];
   inputData[2] = inByte[2];
@@ -89,26 +107,24 @@ void CollateInputData() {
   inputData[8] = mouseY;
 }
 
-void ChooseLiveRecording() {
+void DrawLiveVisuals() {
 
   switch (recordingState) {
     case 0:
-      //States(modeNumber, inputData);
-      StatesOverLay(inputData, recordedInputStatic);
+      OverLayModes(inputData, recordedInputStatic);
       break;
     case 1:
       RecordInputs();
-      StatesOverLay(inputData, recordedInputStatic);
-      //States(modeNumber, inputData);
+      OverLayModes(inputData, recordedInputStatic);
       break;
     case 2:
-      StatesOverLay(recordedData[replayIndex], recordedInputStatic);
+      OverLayModes(recordedData[replayIndex], recordedInputStatic);
       replayIndex++;
       if (replayIndex > recordingIndex)
         replayIndex = 0;
       break;
     case 3:
-      StatesOverLay(inputData, recordedData[replayIndex]);
+      OverLayModes(inputData, recordedData[replayIndex]);
       replayIndex++;
       if (replayIndex > recordingIndex)
         replayIndex = 0;
@@ -125,7 +141,7 @@ void RecordInputs() {
 }
   
 
-void States(int modeNumber, float[] input) {
+void Modes(int modeNumber, float[] input) {
 
   switch (modeNumber)
   {
@@ -136,7 +152,8 @@ void States(int modeNumber, float[] input) {
       DrawSun((int)(input[5] - 1), (int)input[2] / 10, (int)input[3], (int)input[0]/4, (int)input[1] / 2, (int)(input[4] - 1) * 25);
       break;
     case 3:
-      DrawCircles((int)map(input[2],0,1024,1,30), (int)(input[1] * 1.5), (int) input[5], (int)input[3] /  100, (int)input[0] / 4, (int)input[4] * 25);
+      //DrawCircles((int)map(input[2],0,1024,1,30), (int)(input[1] * 1.5), (int) input[5], (int)input[3] /  100, (int)input[0] / 4, (int)input[4] * 25);
+      DrawVulva((int)input[1], input[5], input[3] * 0.0002, ((int)input[4] - 1) * 20, input[2] / 200);
       break;
     case 4:
       ThreeDMatrix((int)input[1] / 5, 1 + (int)input[2] /  100, keyBoardLow, (int)input[3] /  10, (int)input[0] /  4, ((int)input[4] - 1) * 25, (int)input[5] );
@@ -146,13 +163,13 @@ void States(int modeNumber, float[] input) {
       break;
     case 6:
       DrawSquares((int)input[1], (int)input[0], (int)input[2] / 30, input[3] * 0.1, (int)input[4], (int) input[5] * 100);
-      //CameraGame((int)input[2] / 4, (int)input[0] / 4, input[1] * 0.002, (int)input[5] - 1, (int)input[3] / 4); 
       break;
     case 7:
       DrawParticles(1 + (int)input[3]/30, (int)input[0] / 100, (int)input[2] + 150, (int)input[1] / 10, (int)(255 - input[4] * 25), (int)input[7], (int)input[8]);
       break;
     case 8:
-      DrawAudioClouds(input[0], input[1], input[2], input[3], (int)input[4], (int)input[5], (int)input[8], (int)input[6] * 25);
+      //DrawAudioClouds(input[0], input[1], input[2], input[3], (int)input[4], (int)input[5], (int)input[8], (int)input[6] * 25);
+      CameraGame((int)input[2] / 4, (int)input[0] / 4, input[1] * 0.002, (int)input[5] - 1, (int)input[3] / 4, (int)input[4]); 
       break;
     case 9:
       DrawPyramid((int)input[1], (int)input[0] / 4, (int)(input[5] - 1), input[3] * 0.01, (int)map(input[2],0,1024,1,8), (int)(20 - 2*input[4]));
@@ -163,15 +180,15 @@ void States(int modeNumber, float[] input) {
 }
 
 
-void StatesOverLay(float[] input, float[] inputPrevious) {
+void OverLayModes(float[] input, float[] inputPrevious) {
   pushMatrix();
-  States(activeModes[2], recordedInputTwo);
+  Modes(activeModes[2], recordedInputTwo);
   popMatrix();
   pushMatrix();
-  States(activeModes[1], inputPrevious);
+  Modes(activeModes[1], inputPrevious);
   popMatrix();
   pushMatrix();
-  States(activeModes[0], input);
+  Modes(activeModes[0], input);
   popMatrix();     
 }
 
@@ -183,10 +200,14 @@ void DrawIndicators() {
   for (int i = 0; i < 4; i++) {
     rect(20 + (int)inByte[i] / 20, 50 + i * 50, (int)inByte[i] / 10, 30);
   }
+  fill(125);
+  textSize(20);
+  text(recordingState,20,250);
   popMatrix();
 }
 
 void DrawPyramid(int size, int _color, int _speed, float _rotate, int pyramidNumber, int _transparency) {
+  strokeWeight(2);
   translate(width/2, height/2, height/2);
   rotateX(_rotate);
   rotateY(0.001 * millis() * _speed);
@@ -278,7 +299,7 @@ void Spiral(int _number, int _size, float _angle, int _color, int _speed, int _t
 }
 
 
-void CameraGame(int hueThreshold, int _hueOffset, float _skewX, int _rotate, int brightnessThreshold) {
+void CameraGame(int hueThreshold, int _hueOffset, float _skewX, int _rotate, int brightnessThreshold, int pixelSize) {
   float _skewY = _skewX;
   if (video.available()) {
     video.read();
@@ -299,13 +320,13 @@ void CameraGame(int hueThreshold, int _hueOffset, float _skewX, int _rotate, int
   rotate(millis() * 0.001 * _rotate);
   for (int i = 0; i < numPixels; i++) {
     fill(colors[i]);
-    int j = i % 640;
-    rect((j - video.width/2) * 2 * _skewX, ((i / 960) - video.height / 3)* 3 *  _skewY, 2 * _skewX, 3 *  _skewY);
+    int j = i % 320;//640; /960
+    rect((j - video.width/2) * 4 * _skewX, ((i / 480) - video.height / 3)* 6 *  _skewY, pixelSize * 2,pixelSize * 4 / 3);// * _skewX, 3 *  _skewY);
   }
   
 }
 
-void BackGroundChoice(boolean fuzzy) {
+void ChooseBackground(boolean fuzzy) {
   if (!fuzzy) {
     background(0);
   } else {
